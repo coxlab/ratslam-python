@@ -1,5 +1,21 @@
 import numpy as np
+import pylab as plt
 import simple_vision
+
+def compare_segments(x_sums, prev_x_sums, shift, shape):
+    if (x_sums is None) or (prev_x_sums is None):
+        return 0, 0
+    minval = np.inf
+    offset = 0
+    for s in range(shift-shape, shape-shift):
+        val = 0
+        for n in xrange(shape-abs(s)):
+            val += abs(x_sums[n+max(s,0)] - prev_x_sums[n-min(s,0)])
+        val /= (shape - abs(s))
+        if val < minval:
+            minval = val
+            offset = s
+    return offset, minval
 
 class SimpleVisualOdometer:
     """ Very simple visual odometry machinery """
@@ -18,13 +34,13 @@ class SimpleVisualOdometer:
         
         # initial heading
         self.odo = np.array([0, 0, np.pi / 2.])
-        
+    
     def estimate_odometry(self, im):
         """ Estimate the translation and rotation of the viewer, given a new 
             image sample of the environment
             
             (Matlab version: equivalent to rs_visual_odometry)
-        """        
+        """
         degrees_per_pixel = self.fov_deg / im.shape[1]
         
         # Translation
@@ -33,16 +49,21 @@ class SimpleVisualOdometer:
         
         # sum down to a single strip
         im_x_sums = sum(sub_im, 0)
-        im_x_sums /= sum(im_x_sums) / im_x_sums.shape[1]
+        # plt.imshow(sub_im)
+        # plt.plot(im_x_sums)
+        # plt.show()
+        avint = sum(im_x_sums) / im_x_sums.shape[0]
+        im_x_sums /= avint
+        # im_x_sums /= sum(im_x_sums) / im_x_sums.shape[0]
         
         (min_offset, min_diff) = compare_segments(im_x_sums,
                                                   self.prev_trans_x_sums,
                                                   self.shift_match,
-                                                  im_x_sums.shape[1])
-        trans = mindiff * self.trans_scale
+                                                  im_x_sums.shape[0])
+        trans = min_diff * self.trans_scale
         
-        if vtrans > 10.0:
-            vtrans = 0.0
+        if trans > 10.0:
+            trans = 0.0
         
         # cache for the next round
         self.prev_trans_x_sums = im_x_sums
@@ -50,16 +71,23 @@ class SimpleVisualOdometer:
         # Rotation
         sub_im = im[ self.im_rot_y_range,  self.im_odo_x_range ]
         im_x_sums = sum(sub_im, 0)
-        im_x_sums /= sum(im_x_sums) / im_x_sums.shape[1]
+        avint = sum(im_x_sums) / im_x_sums.shape[0]
+        im_x_sums /= avint
+        # im_x_sums /= sum(im_x_sums) / im_x_sums.shape[0]
         
         (min_offset, min_diff) = compare_segments(im_x_sums,
                                                   self.prev_rot_x_sums,
                                                   self.shift_match,
-                                                  im_x_sums.shape[1])
+                                                  im_x_sums.shape[0])
         
         rot = min_offset * degrees_per_pixel * np.pi / 180.
         self.prev_rot_x_sums = im_x_sums
         
-        return (trans, rot)
+        # update odometry
+        self.odo[2] += rot
+        self.odo[0] += trans * np.cos(self.odo[2])
+        self.odo[1] += trans * np.sin(self.odo[2])
+        
+        return (trans, rot, self.odo)
         
         

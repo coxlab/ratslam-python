@@ -52,22 +52,28 @@ class RatSLAM:
     def update(self, video_frame):
         # TODO save experience map
         
-        # convert video_frame to grayscale
+        # convert video_frame to grayscale # done outside
         # plt.imshow(video_frame)
         # plt.show()
         
-        # get most active visual template (bassed on current video_frame)
-        
         # get odometry from video
+        speed, rotation, odo = self.odometer.estimate_odometry(video_frame)
         
-        # update post cells
+        # get most active visual template (bassed on current video_frame)
+        vt_id = self.view_templates.match(video_frame, odo[0], odo[1], odo[2])
+        
+        # update pose cells
+        self.pose_cell_network.update(self.view_templates.templates[vt_id], speed, rotation)
         
         # get 'best' center of pose cell activity
+        px, py, pr = self.pose_cell_network.activty_packet_center()
         
         # run an iteration fo the experience map
+        experience_map.update(vt_id, speed, rotation, (px, py, pr))
         
         # store current odometry for next update
-        pass
+        # pass
+        print self.experience_map.get_current_experience()
         
 
 if __name__ == "__main__":
@@ -93,7 +99,7 @@ if __name__ == "__main__":
     render_rate = 10
     
     test_video = DirVideoSource('/Users/graham/Desktop/ratslam/videos/stlucia_0to21000',"%06i.png",1)
-    n_frames = 2102
+    n_frames = 10#2102
     # test_video = FFMpegVideoSource("stlucia_1to21000.mov")
     
     # feed each video frame into the model

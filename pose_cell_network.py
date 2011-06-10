@@ -3,7 +3,7 @@ import numpy as np
 class PoseCellNetwork:
 
     def __init__(self, shape):
-        self.activities = np.array(shape)
+        self.activities = np.zeros(shape)
         self.shape = shape
 
         self.view_template_inject_energy = None # TODO
@@ -19,6 +19,8 @@ class PoseCellNetwork:
         self.i_th_wrap = None # TODO
         self.i_w_dim = None # TODO
         self.inhibitory_weights = None # TODO
+        
+        self.global_inhibition = 0.00002
         
         self.c_size_th = None # TODO
     
@@ -59,14 +61,14 @@ class PoseCellNetwork:
                      (30 - exp(1.2 * view_template.template_decay))
             
             if energy > 0:
-                activities[act_x, act_y, act_th] += energy
+                self.activities[act_x, act_y, act_th] += energy
         
         # local excitation
-        new_activity = zeros_like(self.activities)
+        new_activity = np.zeros_like(self.activities)
         for x in range(0, self.activities.shape[0]):
             for y in range(0, self.activities.shape[1]):
-                for z in range(0, activities.shape[2]):
-                    if activities[x,y,z] != 0:
+                for z in range(0, self.activities.shape[2]):
+                    if self.activities[x,y,z] != 0:
                         xs = self.e_xy_wrap[x:x+self.w_e_dim-1]
                         ys = self.e_xy_wrap[y:y+self.w_e_dim-1]
                         ths = self.e_th_wrap[z:z+self.w_e_dim-1]
@@ -76,7 +78,7 @@ class PoseCellNetwork:
         self.activities = new_activity
         
         # local inhibition
-        new_activity = zeros_like(self.activities)
+        new_activity = np.zeros_like(self.activities)
         for x in range(0, self.activities.shape[0]):
             for y in range(0, self.activities.shape[1]):
                 for z in range(0, self.activities.shape[2]):

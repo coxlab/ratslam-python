@@ -31,7 +31,7 @@ class ExperienceMap:
     
     def __init__(self, pose_cell_network, view_templates, **kwargs):
         self.exps = []
-        self.current_exp_id = 0
+        self.curr_exp_id = 0
         self.pc_network_shape = pose_cell_network.shape
         self.view_templates = view_templates
         
@@ -143,7 +143,7 @@ class ExperienceMap:
                 
                 accum_delta_x = 0
                 accum_delta_y = 0
-                accum_delta_facing = self.exps[current_exp_id].facing_rad
+                accum_delta_facing = self.exps[curr_exp_id].facing_rad
                 
         for i in range(0, self.exp_loops):
             # loop through experiences
@@ -201,7 +201,9 @@ class ExperienceMap:
         
         self.exp_history.append(self.curr_exp_id)
 
-
+    def get_current_experience(self):
+        return self.exps[self.curr_exp_id]
+    
     def add_new_experience(self, curr_exp_id, 
                            new_exp_id, x_pc, y_pc, th_pc, vt_id):
         "Create a new experience and link current experience to it"
