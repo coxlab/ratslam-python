@@ -61,20 +61,18 @@ class ExperienceMap:
 
         # if the vt is new or the pc x,y,th has changed enough create a new
         # experience
-        if vt.numexps == 0 || \
-          delta_pc > self.delta_pc_threshold:
+        if (vt.numexps == 0) or (delta_pc > self.delta_pc_threshold):
 
             self.add_new_exp(self.curr_exp_id, x_pc, y_pc, th_pc, vt_id)
 
             self.prev_exp_id = self.curr_exp_id
             self.curr_exp_id = self.numexps
-
+            
             accum_delta_x = 0
             accum_delta_y = 0
             accum_delta_facing = self.exps[self.curr_exp_id].facing_rad
-        
-        
-        curr_exp = self.exps[self.curr_exp_id]
+            
+            curr_exp = self.exps[self.curr_exp_id]
         
         elif vt_id != prev_vt_id:
             
@@ -107,6 +105,7 @@ class ExperienceMap:
                 # instead of a false posivitive which may create blunder links in
                 # the experience map keep the previous experience
                 # matched_exp_count
+                pass
             else:
                 min_delta = min(delta_pc)
                 min_delta_id = argmin(delta_pc)

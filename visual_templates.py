@@ -22,7 +22,7 @@ class VisualTemplateCollection:
         (Matlab equivalent: rs_visual_template)"""
         
         
-    def __init__(**kwargs):
+    def __init__(self, **kwargs):
         self.template_decay = kwargs.pop('template_decay', None)
         self.match_y_range = kwargs.pop('y_range', None)
         self.match_x_range = kwargs.pop('x_range', None)
@@ -62,7 +62,7 @@ class VisualTemplateCollection:
 
         # if this intensity template doesn't match any of the existing templates
         # then create a new template
-        if (diff * image_x_sums.shape[1]) > self.match_threshold):
+        if (diff * image_x_sums.shape[1]) > self.match_threshold:
             vt_id = len(self.view_templates)
             template = image_x_sums
             

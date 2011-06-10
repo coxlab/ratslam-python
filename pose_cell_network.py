@@ -1,7 +1,10 @@
+import numpy as np
+
 class PoseCellNetwork:
 
     def __init__(self, shape):
-        self.activities = array(shape)
+        self.activities = np.array(shape)
+        self.shape = shape
 
         self.view_template_inject_energy = None # TODO
         
@@ -31,7 +34,7 @@ class PoseCellNetwork:
         for x in range(0, dim):
             for y in range(0, dim):
                 for z in range(0, dim):
-                    weights[x,y,z] = 
+                    weights[x,y,z] = \
                         1./(var*sqrt(2*pi))*exp((-(x-dim_center)**2 -       \
                             (y-dim_center)**2-(z-dim_center)**2)/(2*var^2));
         total = sum( weights.ravel() ) 
