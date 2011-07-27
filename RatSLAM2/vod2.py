@@ -7,19 +7,19 @@ from pylab import *
 import cv, time
 
 def get_im_xSums(im, y_range_type, x_range):
+
     #essentially this function gets the scanline intensity which is returned as im_xsums of the sub_image specified by the parameters initialized in the constructor
-    sub_im = im[y_range_type, x_range] #where do i get im_odo_xrange?
+    sub_im = im[y_range_type, x_range] 
     im_xsums = asarray(sum(sub_im, 0), dtype = 'float64') #im_sums is a 1-d matrix of sums of the y-values at each x in the sub_im
-    im_xsums = im_xsums/(sum(im_xsums)/ len(im_xsums)) #.shape is a command that tells you the size/length of a matrix im_sums and the[0] is there because usually .shape returns a tuple
+    im_xsums = im_xsums/(sum(im_xsums)/ len(im_xsums)) 
     return im_xsums
 
 def rs_compare_segments(seg1, seg2, slen, cwl):
 
     # assume a large difference
-    #in matlab code, did not understand the point of diffs array of zeros..
     mindiff = inf
         
-    # for each offset sum the abs difference between the two segments
+    # for each offset, sum the abs difference between the two segments
     for offset in xrange(slen+1):
         cdiff = abs(seg1[offset:cwl] - seg2[:cwl - offset])
         cdiff = float(sum(cdiff, 0)) / float(cwl - offset)
@@ -66,6 +66,7 @@ class VisOdom:
         
         [minoffset, mindiff] = rs_compare_segments(image_x_sums, self.prev_vtrans_image_x_sums, self.VISUAL_ODO_SHIFT_MATCH, len(image_x_sums))
         vtrans = mindiff * self.VTRANS_SCALE
+        
         #a hack to detect excessively large vtrans
         if vtrans > 10:
             vtrans = 0
@@ -89,13 +90,3 @@ class VisOdom:
         self.delta = [vtrans, vrot]
         return self.odo
 
-def testVOD():
-    ot = time.time()
-    vod = VisOdom()
-    vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml2.png')
-    print vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml3.png')
-    print vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml4.png')
-    print vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml5.png')
-    print vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml6.png')
-    print vod.update('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Video/stlucia_matlab_testloop/ml7.png')
-    print 'time: ' + str(time.time()-ot)

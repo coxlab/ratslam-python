@@ -40,7 +40,6 @@ def Get_Signed_Delta_Rad(angle1, angle2):
             angle = 0(2*pi-delta_angle)
     return angle
 
-#HAS TESTED AND CORRECTED UP TO THIS POINT: FIGURE OUT WHAT I'm TRYING TO ACCOMPLISH WITH THE EXPERIENCES AND LINKS.
 class exp:
     def __init__(self, **kwargs):
         self.x_pc = kwargs.pop('x_pc', 0)
@@ -52,7 +51,7 @@ class exp:
         
         self.links = kwargs.pop('links', []) #a link is another exp that this exp is connected to.
         self.x_m = kwargs.pop('x_m', 0) #x_m is xcoord in experience map
-        self.y_m = kwargs.pop('y_m', 0)
+        self.y_m = kwargs.pop('y_m', 0) #y_m is ycoord in experience map
         
         self.facing_rad = kwargs.pop('facing_rad', 0)
 
@@ -188,7 +187,6 @@ class exp_map:
                 
                 self.accum_delta_x = 0
                 self.accum_delta_y = 0
-                #print 'expid ', self.exp_id, ' selfexps ex ', len(self.exps)
                 self.accum_delta_facing = self.exps[self.exp_id].facing_rad
         
         for i in xrange(self.exploops):

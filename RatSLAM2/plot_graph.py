@@ -89,12 +89,13 @@ for i in xrange(1000):
     odo = vod.update(im)
 
     #get pcmax
-    pcnet.update(vod.delta, v_temp) #vtemp is a visual template with the v_temp.first = True
+    pcnet.update(vod.delta, v_temp) 
     pcmax = pcnet.get_pc_max(pcnet.avg_xywrap, pcnet.avg_thwrap)
     xcoord.append(pcmax[0])
     ycoord.append(pcmax[1])
     thcoord.append(pcmax[2])
     
+    #get curr_exp_id
     id = emap.update(vod.delta[0], vod.delta[1], pcmax[0], pcmax[1], pcmax[2], vc)
 
     im = imread(im)
