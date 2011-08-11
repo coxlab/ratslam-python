@@ -4,46 +4,52 @@ Created on Jun 27, 2011
 @author: Christine
 '''
 import localView as lv
-from pylab impot *
-import math, scipy, time
+from pylab import *
 
 class pc_Network:
     
     def __init__(self, shape, **kwargs):
         
         self.shape = kwargs.pop('pc_shape', shape) # [61, 61, 36]
+        PC_DIM_XY = self.shape[0]
+        PC_DIM_TH = self.shape[2]
+        
         self.posecells = zeros(shape)
         
         self.vt_inject = kwargs.pop('vt_inject', 0.1)
         self.pc_vtrans_scaling = kwargs.pop('vtrans_scaling', float64(0.1)) 
         
         #excitation constants
-        self.e_xywrap = append(append(arange(58, 61), arange(0, 61)), arange(0, 3)) 
-        self.e_thwrap = append(append(arange(33, 36), arange(0, 36)), arange(0, 3))
-        self.e_wdim = 7
+        self.e_wdim = kwargs.pop('e_wdim', 7)
+        e_dim_half = self.e_wdim/2
+        self.e_xywrap = append(append(arange(PC_DIM_XY-e_dim_half, PC_DIM_XY), arange(0, PC_DIM_XY)), arange(0, PC_DIM_XY-e_dim_half)) 
+        self.e_thwrap = append(append(arange(PC_DIM_TH-e_dim_half, PC_DIM_TH), arange(0, PC_DIM_TH)), arange(0, PC_DIM_TH-e_dim_half))
         self.e_pcw = self.create_pcWeights(self.e_wdim, 1)
         
         #inhibition constants
-        self.i_xywrap = append(append(arange(59, 61), arange(0, 61)), arange(0, 2))
-        self.i_thwrap = append(append(arange(34, 36), arange(0, 36)), arange(0, 2))
-        self.i_wdim = 5
+        self.i_wdim = kwargs.pop('i_wdim', 5)
+        i_dim_half = self.i_wdim/2
+        self.i_xywrap = append(append(arange(PC_DIM_XY-i_dim_half, PC_DIM_XY), arange(0, PC_DIM_XY)), arange(0, PC_DIM_XY-i_dim_half))
+        self.i_thwrap = append(append(arange(PC_DIM_TH-i_dim_half, PC_DIM_TH), arange(0, PC_DIM_TH)), arange(0, PC_DIM_TH-i_dim_half))
         self.i_pcw = self.create_pcWeights(self.i_wdim, 2)
         
         self.global_inhibition = kwargs.pop('global_pc_inhibition', 0.00002)
-        self.c_size_th = 2*float64(pi)/36
+        self.c_size_th = kwargs.pop('c_size_th', 2*float64(pi)/36)
         
         #finding pose cell centre constants
-        self.xy_sum_sin = sin(arange(61)* 2*float64(pi)/61.0)
-        self.xy_sum_cos = cos(arange(61)* 2*float64(pi)/61.0)
-        self.th_sum_sin = sin(arange(36)* 2*float64(pi)/36.0)
-        self.th_sum_cos = cos(arange(36)* 2*float64(pi)/36.0)
+        self.xy_sum_sin = sin(arange(PC_DIM_XY)* 2*float64(pi)/PC_DIM_XY)
+        self.xy_sum_cos = cos(arange(PC_DIM_XY)* 2*float64(pi)/PC_DIM_XY)
+        self.th_sum_sin = sin(arange(PC_DIM_TH)* 2*float64(pi)/PC_DIM_TH)
+        self.th_sum_cos = cos(arange(PC_DIM_TH)* 2*float64(pi)/PC_DIM_TH)
         
-        self.cells_avg = 3
-        self.avg_xywrap = append(append(arange(58, 61), arange(0, 61)), arange(0, 3)) #same as e_xywrap
-        self.avg_thwrap = append(append(arange(33, 36), arange(0, 36)), arange(0, 3))
+        self.cells_avg = kwargs.pop('cell_avg', 3)
+        self.avg_wdim = kwargs.pop('avg_wdim', 7)
+        avg_dim_half = self.avg_wdim/2
+        self.avg_xywrap = append(append(arange(PC_DIM_XY-avg_dim_half, PC_DIM_XY), arange(0, PC_DIM_XY)), arange(0, PC_DIM_XY-avg_dim_half))
+        self.avg_thwrap = append(append(arange(PC_DIM_TH-avg_dim_half, PC_DIM_TH), arange(0, PC_DIM_TH)), arange(0, PC_DIM_TH-avg_dim_half))
         
-        self.max_pc = 0
-        
+        self.max_pc = [0, 0, 0]
+    
     def create_pcWeights(self, dim, var): #dim is dimension and var is variance
         weight = zeros([dim, dim, dim])
         dim_centre = math.floor(dim/2)
@@ -55,6 +61,7 @@ class pc_Network:
 
         total = abs(sum(sum(sum(weight)))) 
         weight = weight/total
+    
         return weight
 
     def activityMatrix(self, xywrap, thwrap, wdim, pcw): 
@@ -65,6 +72,7 @@ class pc_Network:
         for index in xrange(len(indices[0])):
             (i, j, k) = (indices[0][index], indices[1][index], indices[2][index])
             pca_new[ix_(xywrap[i:i+wdim], xywrap[j:j+wdim],thwrap[k:k+wdim])] += self.posecells[i,j,k]*pcw
+        
         return pca_new
     
     def get_pc_max(self, xywrap, thwrap):
@@ -86,7 +94,6 @@ class pc_Network:
         x = (arctan2(sum(self.xy_sum_sin*x_sums), sum(self.xy_sum_cos*x_sums)) *self.shape[0]/(2*pi)) % (self.shape[0])
         y = (arctan2(sum(self.xy_sum_sin*y_sums), sum(self.xy_sum_cos*y_sums)) *self.shape[0]/(2*pi)) % (self.shape[0])
         th = (arctan2(sum(self.th_sum_sin*th_sums), sum(self.th_sum_cos*th_sums)) *self.shape[2]/(2*pi)) % (self.shape[2])
-
 
         return (x, y, th)
     
@@ -162,6 +169,7 @@ class pc_Network:
             self.posecells = roll(self.posecells, shift_1, 2) * (1.0 - weight) + roll(self.posecells, shift_2, 2) * (weight)
         
         self.max_pc = self.get_pc_max(self.avg_xywrap, self.avg_thwrap)
+    
         return self.max_pc
 
         

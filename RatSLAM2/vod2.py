@@ -8,9 +8,10 @@ import cv, time
 
 def get_im_xSums(im, y_range_type, x_range):
 
-    #essentially this function gets the scanline intensity which is returned as im_xsums of the sub_image specified by the parameters initialized in the constructor
+    #gets the scanline intensity which is returned as im_xsums of the sub_image specified by the parameters initialized in the constructor
+    
     sub_im = im[y_range_type, x_range] 
-    im_xsums = asarray(sum(sub_im, 0), dtype = 'float64') #im_sums is a 1-d matrix of sums of the y-values at each x in the sub_im
+    im_xsums = asarray(sum(sub_im, 0), dtype = 'float64')
     im_xsums = im_xsums/(sum(im_xsums)/ len(im_xsums)) 
     return im_xsums
 
@@ -50,9 +51,9 @@ class VisOdom:
         self.VISUAL_ODO_SHIFT_MATCH = 140 
         
         self.odo = [0.0,0.0, pi/2]
-        self.delta = [0,0] #vtrans, vrot
+        self.delta = [0,0] #[vtrans, vrot]
         
-    def update(self, raw_image): #raw image will actually be a cvmatrix of pixels
+    def update(self, raw_image): #raw image will be a string
         image = cv.LoadImage(raw_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
         FOV_DEG = 50.0
         dpp = float64(FOV_DEG) / image.width
@@ -73,7 +74,7 @@ class VisOdom:
 
         self.prev_vtrans_image_x_sums = image_x_sums
         
-        # now do rotation
+        # vrot
         sub_image = image[self.IMAGE_VROT_Y_RANGE, self.IMAGE_ODO_X_RANGE]
         image_x_sums = sum(sub_image, 0)
         avint = float64(sum(image_x_sums)) / len(image_x_sums)
@@ -81,6 +82,7 @@ class VisOdom:
         
         [minoffset, mindiff] = rs_compare_segments(image_x_sums, self.prev_vrot_image_x_sums, self.VISUAL_ODO_SHIFT_MATCH, len(image_x_sums))
         vrot = minoffset * dpp * pi / 180.0
+                
         self.prev_vrot_image_x_sums = image_x_sums
         
         self.odo[2] += vrot 
@@ -88,5 +90,6 @@ class VisOdom:
         self.odo[1] += vtrans* sin(self.odo[2]) #ycoord    
         
         self.delta = [vtrans, vrot]
+        
         return self.odo
 

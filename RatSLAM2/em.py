@@ -65,25 +65,23 @@ class link:
 class exp_map:
     def __init__(self, posecellnetwork, tempcol):
         self.exps = []
-        self.exp_id = None
+        self.exp_id = kwargs.pop('exp_id', None)
 
         self.accum_delta_x = 0
         self.accum_delta_y = 0
         self.accum_delta_facing = pi/2
         
         self.vt = tempcol.templates
-        self.vt_id = 0
+        self.vt_id = kwargs.pop('vt_id', 0)
         self.pcnet = posecellnetwork
         
-        self.PC_DIM_XY = 61
-        self.PC_DIM_TH = 36
-        self.EXP_DELTA_PC_THRESHOLD = 1.0
+        self.PC_DIM_XY = kwargs.pop('PC_DIM_XY', 61)
+        self.PC_DIM_TH = kwargs.pop('PC_DIM_TH', 36)
+        self.EXP_DELTA_PC_THRESHOLD = kwargs.pop('EXP_DELTA_PC_THRESHOLD', 1.0)
         
-        self.exploops = 100
-        self.exp_correction = 0.5
-        
-        self.exp_history = []
-        
+        self.exploops = kwargs.pop('exp_loop_iter', 100)
+        self.exp_correction = kwargs.pop('exp_correction', 0.5)
+                
     def get_exp(self, exp_id):
         [xpc, ypc, thpc] = [self.exps[exp_id].x_pc, self.exps[exp_id].y_pc, self.exps[exp_id].th_pc]
         vistemp =  self.exps[exp_id].vt_id
@@ -208,9 +206,9 @@ class exp_map:
                     self.exps[e0].facing_rad = ClipRad180(self.exps[e0].facing_rad + df*self.exp_correction)
                     self.exps[e1].facing_rad = ClipRad180(self.exps[e1].facing_rad - df*self.exp_correction)
         
-        self.exp_history.append(self.exp_id)
         self.get_exp(self.exp_id)
         self.vt_id = vt_id
+    
         return self.exp_id
                                      
                                      

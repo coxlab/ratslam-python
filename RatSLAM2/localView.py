@@ -4,23 +4,23 @@ Created on Jun 22, 2011
 @author: Christine
 '''
 from pylab import *
-import vod2 as SimpleVisualOdometer
+import vod2
 
 class template: #same thing as local view cell
     
     def __init__ (self, curr_xsums, **kwargs):
 
         self.template = curr_xsums #scanline profile of an image
-        self.activity = float64(1.0) 
+        self.activity = kwargs.pop('activity', float64(1.0)) 
         
         self.x_pc = kwargs.pop('x_pc', 31)
         self.y_pc = kwargs.pop('y_pc', 31)
         self.th_pc = kwargs.pop('th_pc', 19)
                 
-        self.vc = 0 #vc is visual template count/id: vc=vt_id 
-        self.first = True# Boolean that tells whether this is the first time this vt is being activated       
+        self.vc = kwargs.pop('vt_id', 0) #vc is visual template count/id: vc=vt_id 
+        self.first = kwargs.pop('First', True) # Boolean that tells whether this is the first time this vt is being activated       
         
-        self.exps = []#list of exp_id associated with visual template
+        self.exps = [] #list of exp_id associated with visual template
 
 class templateCollection:
     
@@ -31,13 +31,13 @@ class templateCollection:
         self.x_range = kwargs.pop('x_range', slice(54,615))
         self.y_range = kwargs.pop('y_range', slice(119,280)) # standard is 0:480 but changed because of parameters specified in st_lucia program
         
-        self.globalDecay = kwargs.pop('globalDecay', 0.1) #global decay for a bunch of local view cells within the same template collection
-        self.decay = kwargs.pop('decay', 1.0) #temporary decay for a specific template
+        self.globalDecay = kwargs.pop('globalDecay', 0.1) #global decay for all local view cells within the same template collection
+        self.decay = kwargs.pop('decay', 1.0) #local decay for a specific template
         
         self.offsetP = kwargs.pop('offsetP', 20) #set to 20 in VT_SHIFT_MATCH
         self.match_threshold = kwargs.pop('match_threshold', 0.09) #set to 0.09
         
-        self.curr_vc = None
+        self.curr_vc = kwargs.pop('curr_vt_id', None)
     
     def match(self, im): 
     
@@ -56,7 +56,7 @@ class templateCollection:
             
             if self.templates[k].activity<0: 
                 self.templates[k].activity = 0
-            (minS, minFuncVal) = SimpleVisualOdometer.rs_compare_segments(im_xsums, self.templates[k].template, self.offsetP, len(im_xsums))
+            (minS, minFuncVal) = vod2.rs_compare_segments(im_xsums, self.templates[k].template, self.offsetP, len(im_xsums))
         
             if (minFuncVal<diff): #if-statement finds the minimum value of the difference between two templates
                 diff = minFuncVal

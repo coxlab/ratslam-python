@@ -140,7 +140,7 @@ Classes -
 			adjust value of associated pose cells by a factor related to v_temp activity level, otherwise, pass. Pose cell network is excited, inhibited, globally inhibited, 
 			and normalized. Then path integration is done to shift pose cell activity bubble translationally then rotationally.
 			
-			returns void
+			returns ndarray of maximum value pose cell index
 ~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
 em: Experience Mapping
 

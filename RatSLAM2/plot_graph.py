@@ -37,30 +37,37 @@ def initialize_em(tempCol, vod, pcnet):
     emap.update(vod.delta[0], vod.delta[1], pcnet.max_pc[0], pcnet.max_pc[1], pcnet.max_pc[2], vt_id)
     return emap
     
+#initializing position of the pose cell network activity bubble at center
 def initialize_pc(tempCol, vod):
-    pcnet = pc.pc_Network([61,61,36])#initializing position of the pose cell network activity cells
+    
+    pcnet = pc.pc_Network([61,61,36])
     xy_pc = 61/2+1 
-    th_pc = 36/2+1 #input should be 31, 31, 19
+    th_pc = 36/2+1 
     pcnet.posecells[xy_pc, xy_pc, th_pc] = 1
+    
     v_temp = tempCol.get_template(0)
-    pcnet.update(vod.delta, v_temp) #vtemp is a visual template with the v_temp.first = True
+    pcnet.update(vod.delta, v_temp) 
     pcmax = pcnet.get_pc_max(pcnet.avg_xywrap, pcnet.avg_thwrap)
     
     return pcnet
 
 #creating visual templatecollection and initializing it with the first image.
 def initialize_lv():
+    
     tempCol = lv.templateCollection()
     im = cv.LoadImage(get_image(0), cv.CV_LOAD_IMAGE_GRAYSCALE)
     vt_id0 = tempCol.update(zeros(561))
     vtid = tempCol.match(im)
+    
     return tempCol
 
-#initializing visual Odometer
+#initializing Visual Odometer
 def initialize_odo():
+    
     im0 = get_image(0)
     vod = vod2.VisOdom()
     x = vod.update(im0)
+    
     return vod
 
 tempCol = initialize_lv()
