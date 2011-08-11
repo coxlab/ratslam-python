@@ -1,0 +1,278 @@
+README 08.09.11
+@author: Christine Lee (cgl11@duke.edu)
+Rowland Institute at Harvard University - REU Summer 2011
+
+RatSLAM
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+vod2: Visual Odometer
+
+Functions - 
+	rs_compare_segments(ndarray seg1, ndarray seg2, int slen, int cwl)
+	
+		Takes in two scanline intensity profiles seg1 and seg2 and returns shift (offset) and minimum difference value (sdiff) 
+		between the minimum difference points.
+		 
+		returns offset and sdiff
+
+Classes - 
+	VisOdom
+		attributes
+		
+			prev_vrot_image_x_sums: ndarray initially 281 zeros
+			prev_vtrans_image_x_sums: ndarray initially 281 zeros
+			IMAGE_ODO_X_RANGE: slice initially (194, 475)
+			IMAGE_VTRANS_Y_RANGE: slice initially (269, 430)
+			IMAGE_VROT_Y_RANGE: slice initially (74, 240)
+			VTRANS_SCALE: int initially 100
+			VISUAL_ODO_SHIFT_MATCH: int initially 140
+			odo: list initially [float 0, float 0, float pi/2] for accumulation of [x-direction translation, y-direction translation, heading]
+			delta: list initially [0, 0] for [translation change, rotation change]
+			
+		update(String raw_image)
+		
+			Takes in string, uploads image from string, determines shift and minimum difference value, calculates incremental translation and rotation change,
+			and updates odometry accumulation data which is returned.
+			
+			returns odo
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+localView: Visual Template Collection
+	
+Classes - 
+	template(ndarray curr_xsums)
+		attributes
+		
+			template: ndarray curr_xsums which is the scanline intensity profile associated with the template
+			activity: float64 initially 1.0 
+			x_pc: int initially 31 for x position in pose cell network
+			y_pc: int initially 31 for y position in pose cell network
+			th_pc: int initially 19 for theta position in pose cell network
+			vc: int initially 0 for index number in templateCollection
+			first: bool initially True for whether this template has been activated before 
+			exps: ndarray initially empty for indices of experiences associated with this visual template
+		
+	templateCollection
+		attributes
+		
+			templates: ndarray initially empty for list of templates in templateCollection
+			x_range: slice initially (54, 615) for scanline intensity profile calculation
+			y_range: slice initially (119, 280) for scanline intensity profile calculation
+			globalDecay: float initially 0.1 
+			decay: float initially 1.0
+			offsetP: int initially 20
+			match_threshold: float initially 0.09
+			curr_vc: int initially none for current visual template index
+		
+		match(cv.iplimage im)
+		
+			Takes in loaded image, determines current image scanline intensity profile, compares with other scanline intensity profiles
+			in templateCollection, either determines a match or creates a new visual template.
+			
+			returns vc of match or new visual template
+			
+		update(ndarray curr_xsums)
+		
+			Takes in scanline intensity profile, creates a new visual template, appends new visual template to templateCollection, returns 
+			index of new visual template in templateCollection.
+			
+			returns vc
+			
+		get_template(int vc)
+		
+			Takes int value, and returns visual template with matching vc.
+			
+			returns template
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-		
+pc_network: Pose Cell Network
+
+Classes - 
+	pc_Network(ndarray shape)
+		attributes
+		
+			shape: ndarray initially [PC_DIM_XY, PC_DIM_XY, PC_DIM_TH] == [61, 61, 36] for shape of pose cell network matrix
+			posecells: ndarray initially zero matrix with shape [PC_DIM_XY, PC_DIM_XY, PC_DIM_TH]
+			vt_inject: float initially 0.1
+			pc_vtrans_scaling: float64 initially 0.1
+			e_xywrap: ndarray initially [58, 59, ...60, 0, 1... 60, 0, 1, 2]
+			e_thwrap: ndarray initially [33, 34, ...35, 0, 1... 60, 0, 1, 2]
+			e_wdim: int initially 7
+			e_pcw: ndarray for excitation activity bubble shape
+			i_xywrap: ndarray initially [59, 60, 0, 1, 2..60, 0, 1]
+			i_thwrap: ndarray initially [34, 35, 0, 1, 2..35, 0, 1]
+			i_wdim: int initially 5
+			i_pcw: ndarray for inhibition activity bubble shape
+			global_inhibition: float initially 0.00002
+			c_size_th: float64 initially pi/18
+			xy_sum_sin: ndarray initially with values sin(index*2*pi/61)
+			xy_sum_cos: ndarray initially with values cos(index*2*pi/61)
+			th_sum_sin: ndarray initially with values sin(index*2*pi/36)
+			th_sum_cos: ndarray initially with values cos(index*2*pi/36)
+			cells_avg: int initially 3
+			avg_xywrap: ndarray initially [58, 59, ...60, 0, 1... 60, 0, 1, 2]
+			avg_thwrap: ndarray initially [33, 34, ...35, 0, 1... 60, 0, 1, 2]
+			max_pc: tuple initially (0, 0, 0)
+			
+		create_pcWeights(int dim, int var)
+		
+			Takes in two integer arguments dim and var, creates 3D matrix with shape [dim, dim, dim], stores weight values depending on
+			distance from the matrix center, normalizes values in matrix, and returns matrix.
+			
+			returns ndarray of weighted values
+			
+		activityMatrix(ndarray xywrap, ndarray thwrap, int wdim, ndarray pcw)
+		
+			Creates an zero matrix with same shape as pose cell network, and finds indices of nonzero values in pose cell network. Then multiplies
+			each nonzero value by the Gaussian weight distribution pcw which is added to the zero matrix indices that correspond with the nonzero value pose
+			cell network indices.
+			
+			returns ndarray which is the updated pose cell network
+			
+		get_pc_max(ndarray xywrap, ndarray thwrap)
+		
+			Finds index of absolute maximum value of pose cell network, and uses population vectors to calculate estimation of real-life
+			position in space.
+			
+			returns tuple with values (x position, y position, theta direction)
+			
+		update(tuple ododelta, localView template v_temp)
+		
+			Determine the effect of visual template v_temp on pose cell network by seeing whether it has been activated before. If it has been activated previously,
+			adjust value of associated pose cells by a factor related to v_temp activity level, otherwise, pass. Pose cell network is excited, inhibited, globally inhibited, 
+			and normalized. Then path integration is done to shift pose cell activity bubble translationally then rotationally.
+			
+			returns void
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+em: Experience Mapping
+
+Functions - 
+	get_minDelta(float d1, float d2, float max)
+	
+		Absolute value difference between d1 and d2 is calculated, and difference between float max and absolute value is calculated.
+		
+		returns float 
+		 
+	ClipRad180(float angle)
+	
+		Calculates angle value equivalent [-180, 180).
+		
+		returns float
+		
+	ClipRad360(float angle)
+	
+		Calculates angle value equivalent [0, 360).
+		
+		returns float
+	
+	Get_Signed_Delta_Rad(float angle1, float angle2)
+	
+		Takes two angle values, finds absolute difference, and gives sign to absolute difference depending on direction.
+		
+		returns float of signed absolute difference between angles
+	
+	
+Classes - 
+	exp
+		attributes
+		
+			x_pc: int initially 0
+			y_pc: int initially 0
+			th_pc: int initially 0
+			vt_id: int initially 0
+			exp_id: int initially 0
+			links: list initially empty
+			x_m: float initially 0
+			y_m: float initially 0
+			facing_rad: float initially 0
+			
+	link
+		attributes
+		
+			exp_id: int initially 0
+			facing_rad: float initially 0
+			d: float initially 0
+			heading_rad: float initially 0
+			
+	exp_map(pc_network pc_Network posecellnetwork, localView templateCollection tempCol)
+		attributes
+		
+			exps: list initially empty
+			exp_id: int initially None
+			accum_delta_x: int initially 0
+			accum_delta_y: int initially 0
+			accum_delta_facing: float initially pi/2
+			vt: list initially containing templates in templateCollection tempCol
+			vt_id: int initially 0 for vc of currently activated visual template
+			pcnet: pcNetwork initially posecellnetwork
+			PC_DIM_XY: int initially 61
+			PC_DIM_TH: int initially 36
+			EXP_DELTA_PC_THRESHOLD: float initially 1.0
+			exploops: int initially 100
+			exp_correction: float initially 0.5
+			exp_history: list initially empty
+			
+		get_exp(int exp_id)
+		
+			Access information about experience with index of exp_id.
+			
+			returns void
+			
+		link_exps(int curr_exp_id, int new_exp_id)
+		
+			Takes two integer values as current experience index and new experience index, calculates heading_rad and facing_rad, 
+			creates link between the two experience, appends newly created link to links list in both experiences.
+			
+			returns void
+			
+		create_exp(int curr_exp_id, int new_exp_id, int nx_pc, int ny_pc, int nth_pc, int nvt_id)
+		
+			Creates link between current experience and experience being created, creates new experience with attributes specified in
+			create_exp parameters, add new experience to experience map list exps, and update correlated visual template with experience index value.
+			
+			returns exp
+			
+		update(float vtrans, float vrot, int x_pc, int y_pc, int th_pc, int vt_id)
+		
+			Updates position (accum_delta_x, accum_delta_y, accum_delta_facing) using using odometry information vtrans and vrot, determines whether 
+			current position according to pose cell network is distinct from previous position using EXP_DELTA_PC_THRESHOLD. If two positions are distinct
+			according to comparison to threshold, new experience is created and appended to exp_map. If current visual template vc (vt_id) and previous 
+			visual template vc (stored in self.vt_id) are not not the same, determine whether current visual template is associated with current experience, 
+			otherwise update so that current experience matches current visual template. Correct for loop closure.
+			
+			returns int of current experience index
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+plot_graph: Main
+
+Functions - 
+
+	draw_position(float x, float y)
+	
+		Draws scatterplot point at position x, y.
+		
+		returns void
+		
+	draw_x_y_z(pcmax, subplot)
+	
+		Draws point at position x, y, z in 3D scatterplot.
+		
+		returns void
+	
+	get_image(int index)
+	
+		returns String of image directory
+	
+	initialize_em(localView templateCollection tempCol, vod2 VisOdom vod, pc_network pc_Network pcnet)
+	
+		returns exp_map
+	
+	initialize_pc(localView templateCollection tempCol, vod2 VisOdom vod)
+	
+		returns pc_Network
+	
+	initialize_lv
+	
+		returns templateCollection
+	
+	initialize_odo
+	
+		returns VisOdom
+	
