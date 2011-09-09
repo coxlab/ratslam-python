@@ -3,10 +3,10 @@ Created on Jun 27, 2011
 
 @author: Christine
 '''
-import localView as lv
+import local_view_cell as lv
 from pylab import *
 
-class pc_Network:
+class PoseCellNetwork:
     
     def __init__(self, shape, **kwargs):
         
@@ -24,14 +24,14 @@ class pc_Network:
         e_dim_half = self.e_wdim/2
         self.e_xywrap = append(append(arange(PC_DIM_XY-e_dim_half, PC_DIM_XY), arange(0, PC_DIM_XY)), arange(0, PC_DIM_XY-e_dim_half)) 
         self.e_thwrap = append(append(arange(PC_DIM_TH-e_dim_half, PC_DIM_TH), arange(0, PC_DIM_TH)), arange(0, PC_DIM_TH-e_dim_half))
-        self.e_pcw = self.create_pcWeights(self.e_wdim, 1)
+        self.e_pcw = self.create_pc_weights(self.e_wdim, 1)
         
         #inhibition constants
         self.i_wdim = kwargs.pop('i_wdim', 5)
         i_dim_half = self.i_wdim/2
         self.i_xywrap = append(append(arange(PC_DIM_XY-i_dim_half, PC_DIM_XY), arange(0, PC_DIM_XY)), arange(0, PC_DIM_XY-i_dim_half))
         self.i_thwrap = append(append(arange(PC_DIM_TH-i_dim_half, PC_DIM_TH), arange(0, PC_DIM_TH)), arange(0, PC_DIM_TH-i_dim_half))
-        self.i_pcw = self.create_pcWeights(self.i_wdim, 2)
+        self.i_pcw = self.create_pc_weights(self.i_wdim, 2)
         
         self.global_inhibition = kwargs.pop('global_pc_inhibition', 0.00002)
         self.c_size_th = kwargs.pop('c_size_th', 2*float64(pi)/36)
@@ -50,7 +50,7 @@ class pc_Network:
         
         self.max_pc = [0, 0, 0]
     
-    def create_pcWeights(self, dim, var): #dim is dimension and var is variance
+    def create_pc_weights(self, dim, var): #dim is dimension and var is variance
         weight = zeros([dim, dim, dim])
         dim_centre = math.floor(dim/2)
         
@@ -64,7 +64,7 @@ class pc_Network:
     
         return weight
 
-    def activityMatrix(self, xywrap, thwrap, wdim, pcw): 
+    def compute_activity_matrix(self, xywrap, thwrap, wdim, pcw): 
         
         #returns gaussian distribution of excitation/inhibition pc activity
         pca_new = zeros(self.shape)  
@@ -113,10 +113,10 @@ class pc_Network:
                 self.posecells[act_x, act_y, act_th] += energy;
         
         #excitation weighted matrix                                                            
-        self.posecells = self.activityMatrix(self.e_xywrap, self.e_thwrap, self.e_wdim, self.e_pcw) 
+        self.posecells = self.compute_activity_matrix(self.e_xywrap, self.e_thwrap, self.e_wdim, self.e_pcw) 
         
         #inhibition weighted matrix
-        self.posecells = self.posecells - self.activityMatrix(self.i_xywrap, self.i_thwrap, self.i_wdim, self.i_pcw) 
+        self.posecells = self.posecells - self.compute_activity_matrix(self.i_xywrap, self.i_thwrap, self.i_wdim, self.i_pcw) 
         
         #global inhibition
         self.posecells[self.posecells<self.global_inhibition] = 0

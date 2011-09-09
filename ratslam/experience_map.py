@@ -40,7 +40,7 @@ def Get_Signed_Delta_Rad(angle1, angle2):
             angle = 0(2*pi-delta_angle)
     return angle
 
-class exp:
+class Experience:
     def __init__(self, **kwargs):
         self.x_pc = kwargs.pop('x_pc', 0)
         self.y_pc = kwargs.pop('y_pc', 0)
@@ -55,14 +55,14 @@ class exp:
         
         self.facing_rad = kwargs.pop('facing_rad', 0)
 
-class link:
+class ExperienceLink:
     def __init__(self, **kwargs):
         self.exp_id = kwargs.pop('exp_id', 0)
         self.facing_rad = kwargs.pop('facing_rad', 0)
         self.d = kwargs.pop('d', 0)
         self.heading_rad = kwargs.pop('heading_rad', 0)
 
-class exp_map:
+class ExperienceMap:
     def __init__(self, posecellnetwork, tempcol):
         self.exps = []
         self.exp_id = kwargs.pop('exp_id', None)

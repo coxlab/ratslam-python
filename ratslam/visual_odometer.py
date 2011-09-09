@@ -38,7 +38,7 @@ def rs_compare_segments(seg1, seg2, slen, cwl):
     
     return (offset, sdif)
 
-class VisOdom:
+class VisualOdometer:
 
     def __init__(self, **kwargs):
         

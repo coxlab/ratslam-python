@@ -3,10 +3,10 @@ Created on Jun 22, 2011
 
 @author: Christine
 '''
-from pylab import *
-import vod2
+#from pylab import *
+#import vod2
 
-class template: #same thing as local view cell
+class VisualTemplate: #same thing as local view cell
     
     def __init__ (self, curr_xsums, **kwargs):
 
@@ -22,7 +22,7 @@ class template: #same thing as local view cell
         
         self.exps = [] #list of exp_id associated with visual template
 
-class templateCollection:
+class VisualTemplateCollection:
     
     def __init__ (self, **kwargs):
         

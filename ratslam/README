@@ -86,7 +86,7 @@ Classes -
 pc_network: Pose Cell Network
 
 Classes - 
-	pc_Network(ndarray shape)
+	PoseCellNetwork(ndarray shape)
 		attributes
 		
 			shape: ndarray initially [PC_DIM_XY, PC_DIM_XY, PC_DIM_TH] == [61, 61, 36] for shape of pose cell network matrix
@@ -112,14 +112,14 @@ Classes -
 			avg_thwrap: ndarray initially [33, 34, ...35, 0, 1... 60, 0, 1, 2]
 			max_pc: tuple initially (0, 0, 0)
 			
-		create_pcWeights(int dim, int var)
+		create_pc_weights(int dim, int var)
 		
 			Takes in two integer arguments dim and var, creates 3D matrix with shape [dim, dim, dim], stores weight values depending on
 			distance from the matrix center, normalizes values in matrix, and returns matrix.
 			
 			returns ndarray of weighted values
 			
-		activityMatrix(ndarray xywrap, ndarray thwrap, int wdim, ndarray pcw)
+		compute_activity_matrix(ndarray xywrap, ndarray thwrap, int wdim, ndarray pcw)
 		
 			Creates an zero matrix with same shape as pose cell network, and finds indices of nonzero values in pose cell network. Then multiplies
 			each nonzero value by the Gaussian weight distribution pcw which is added to the zero matrix indices that correspond with the nonzero value pose
@@ -192,7 +192,7 @@ Classes -
 			d: float initially 0
 			heading_rad: float initially 0
 			
-	exp_map(pc_network pc_Network posecellnetwork, localView templateCollection tempCol)
+	exp_map(pc_network PoseCellNetwork posecellnetwork, localView templateCollection tempCol)
 		attributes
 		
 			exps: list initially empty
@@ -260,13 +260,13 @@ Functions -
 	
 		returns String of image directory
 	
-	initialize_em(localView templateCollection tempCol, vod2 VisOdom vod, pc_network pc_Network pcnet)
+	initialize_em(localView templateCollection tempCol, vod2 VisOdom vod, pc_network PoseCellNetwork pcnet)
 	
 		returns exp_map
 	
 	initialize_pc(localView templateCollection tempCol, vod2 VisOdom vod)
 	
-		returns pc_Network
+		returns PoseCellNetwork
 	
 	initialize_lv
 	
