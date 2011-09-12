@@ -4,7 +4,8 @@ Created on Jul 8, 2011
 @author: Christine
 '''
 from pylab import *
-import cv, time
+import time
+from PIL.Image import Image
 
 def get_im_xSums(im, y_range_type, x_range):
 
@@ -53,13 +54,13 @@ class VisualOdometer:
         self.odo = [0.0,0.0, pi/2]
         self.delta = [0,0] #[vtrans, vrot]
         
-    def update(self, raw_image): #raw image will be a string
-        image = cv.LoadImage(raw_image, cv.CV_LOAD_IMAGE_GRAYSCALE)
+    def update(self, im):
+
         FOV_DEG = 50.0
-        dpp = float64(FOV_DEG) / image.width
+        dpp = float64(FOV_DEG) / im.shape[0]
 
         # vtrans 
-        sub_image = image[self.IMAGE_VTRANS_Y_RANGE, self.IMAGE_ODO_X_RANGE]
+        sub_image = im[self.IMAGE_VTRANS_Y_RANGE, self.IMAGE_ODO_X_RANGE]
 
         image_x_sums = sum(sub_image, 0)
         avint = float64(sum(image_x_sums)) / len(image_x_sums)
@@ -75,7 +76,7 @@ class VisualOdometer:
         self.prev_vtrans_image_x_sums = image_x_sums
         
         # vrot
-        sub_image = image[self.IMAGE_VROT_Y_RANGE, self.IMAGE_ODO_X_RANGE]
+        sub_image = im[self.IMAGE_VROT_Y_RANGE, self.IMAGE_ODO_X_RANGE]
         image_x_sums = sum(sub_image, 0)
         avint = float64(sum(image_x_sums)) / len(image_x_sums)
         image_x_sums = image_x_sums/avint

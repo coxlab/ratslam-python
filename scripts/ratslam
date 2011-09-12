@@ -1,119 +1,18 @@
 #!/usr/bin/env python
-
-import ratslam as rs
-
-import os
-import csv
+import ratslam
+import sys
 import time
-import cv
-
-from itertool import imap
-from pylab import  *
-import matplotlib.pyplot as plt
+import os, os.path
+from numpy import *
+from matplotlib.pylab import *
+#import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
-DEFAULT_NAME_TEMPLATE = 'mlpic%d.png'
-
-
-class ImageDirectorySource (object):
-
-    def __init__(self, n_images = 1000,
-                       base_path, 
-                       filename_template=DEFAULT_NAME_TEMPLATE):
-        self.base_path = base_path
-        self.filename_template = filename_template
-    
-    
-    def __getitem__(self, index):
-        path = os.path.join(self.base_path, 
-                            (self.filename_template) % (index+1))
-        return cv.LoadImage(path, cv.CV_LOAD_IMAGE_GRAYSCALE) 
-        
-    def __iter__(self):
-        return imap(self.__getitem__, range(0, self.n_images))
-
-
-class RatSLAM (object):
-    
-    def __init__(self, image_source):
-        self.image_source = image_source
-
-        self.templates = self.initialize_visual_templates()
-        self.visual_odo = self.initialize_odo()
-        self.pose_cell_network = initialize_pose_cell_network()
-        self.experience_map = self.initialize_experience_map()
-        
-    #creating visual templatecollection and initializing it with the first image.
-    def initialize_visual_templates():
-    
-        templates = ratslam.VisualTemplateCollection()
-        im = self.image_source[0]
-        vt_id0 = templates.update(zeros(561))
-        vtid = templates.match(im)
-        
-        return self.templates
-
-    #initializing Visual Odometer
-    def initialize_odo(self):
-    
-        im0 = self.image_source[0]
-        vod = ratslam.VisualOdometer()
-        x = vod.update(im0)
-        
-        return vod
-        
-    #initializing position of the pose cell network activity bubble at center
-    def initialize_pose_cell_network(self):
-
-        pcnet = ratslam.PoseCellNetwork([61,61,36])
-        xy_pc = 61/2+1 
-        th_pc = 36/2+1 
-        pcnet.posecells[xy_pc, xy_pc, th_pc] = 1
-
-        v_temp = self.templates.get_template(0)
-        pcnet.update(self.visual_odo.delta, v_temp) 
-        pcmax = pcnet.get_pc_max(pcnet.avg_xywrap, pcnet.avg_thwrap)
-
-        return pcnet
-
-    def initialize_experience_map(self):
-          [x_pc, y_pc, th_pc] = pcnet.max_pc
-          vt_id = self.templates.curr_vc
-          link = em.link(exp_id = 0, facing_rad = pi/2, heading_rad = pi/2, d = 0)
-          links = []
-          emap = ratslam.ExperienceMap(self.pose_cell_network, 
-                                       self.templates)
-                                       
-          emap.update(vod.delta[0], vod.delta[1], 
-                      pcnet.max_pc[0], pcnet.max_pc[1], pcnet.max_pc[2], vt_id)
-          return emap
-
-    def evolve(self):
-        c = self.time_step
-        self.time_step += 1
-        
-        im = self.image_source[c] #this is the raw image
-        
-        #get visual template
-        vc = self.templates.match(im)
-        v_temp = self.templates.get_template(vc)
-    
-        # get odometry
-        odo = self.visual_odometer.update(im)
-
-        #get pcmax
-        self.pose_cell_network.update(self.visual_odometer.delta, v_temp) 
-        pcmax = self.pose_cell_network.get_pc_max(self.pose_cell_network.avg_xywrap, 
-                                                  self.pose_cell_network.avg_thwrap)
-        xcoord.append(pcmax[0])
-        ycoord.append(pcmax[1])
-        thcoord.append(pcmax[2])
 
 
 def draw_position(x, y):
     scatter(x,y)
 
-def draw_x_y_z(pcmax, subplot):
+def draw_x_y_z(pcmax, xcoord, ycoord, thcoord, subplot):
     ax3 = Axes3D(gcf(), rect=subplot.get_position())
     ax3.scatter(xcoord, ycoord, thcoord, 'z')
     ax3.set_xlim3d([0, 61])
@@ -121,63 +20,81 @@ def draw_x_y_z(pcmax, subplot):
     ax3.set_zlim3d([0, 36])
 
 
-if __name__ == "__main__":
- 
+def main(): 
     # TODO use argparse
-    data_path = sys.argv[1]
- 
-    image_source = ImageDirectorySource(data_path)
+    video_path = sys.argv[1]
+    output_path = sys.argv[2]
+
+    wait_for_key = False
+
+    image_source = ratslam.VideoSource(video_path, grayscale=True)
+
+    driver = ratslam.RatSLAM(image_source)
  
     xcoord = []
     ycoord = []
     thcoord = []
     
-    ######################################################################################################################################################################
-    for i in xrange(1000):
+    last_time = time.time()
+    
+    ########################################################################
+    for i in xrange(5000):
         
         # option to quit/break cleanly
-        input = raw_input()
-        if input == 'q':
-            break
+        if wait_for_key:
+            print "Press key to continue to next image or 'q' to quit"
+            input = raw_input()
+            if input == 'q':
+                break
         
-        
+        # do a time step of the simulation
         driver.evolve()
-    
-        #get curr_exp_id
-        id = emap.update(vod.delta[0], vod.delta[1], pcmax[0], pcmax[1], pcmax[2], vc)
+        
+        # query some values for plotting
+        im = driver.current_image
+        emap = driver.experience_map
+        pcmax = driver.current_pose_cell
+        odo = driver.current_odo
+        exp_id = driver.exp_id
+        
+        xcoord.append(pcmax[0])
+        ycoord.append(pcmax[1])
+        thcoord.append(pcmax[2])
 
-        im = imread(im)
+        if i % 5 == 0:
+            print "Plotting..."
+            subplot(2,2,1)
+            imshow(im, cmap=cm.gray)
+            a=gca()
+            a.axis('off')
+            title('Raw Image')
+        
+            subplot(2,2,2)
+            draw_position(odo[0], odo[1])
+            b = gca()
+            title('Raw Odometry')
+            b.set_xlim([-50, 100])
+            b.set_ylim([0, 125])
+        
+            pcdata = subplot(2,2,3)
+            draw_x_y_z(pcmax, xcoord, ycoord, thcoord, pcdata)
+            title('Pose Cell Activity')
+            pcdata.axis('off')
+        
+            subplot(2,2,4)
+            draw_position(emap.exps[exp_id].x_m, emap.exps[exp_id].y_m)
+            title('Experience Map')
+            d = gca()
+            d.set_xlim([-50, 100])
+            d.set_ylim([0, 120])
+            savefig(os.path.join(output_path, 'output%06i.png' % i))
 
-        subplot(221)
-        imshow(im)
-        a=gca()
-        a.axis('off')
-        title('Raw Image')
-    
-        subplot(222)
-        draw_position(odo[0], odo[1])
-        b = gca()
-        title('Raw Odometry')
-        b.set_xlim([-50, 100])
-        b.set_ylim([0, 125])
-    
-        pcdata = subplot(223)
-        draw_x_y_z(pcmax, pcdata)
-        title('Pose Cell Activity')
-        pcdata.axis('off')
-    
-        subplot(224)
-        draw_position(emap.exps[id].x_m, emap.exps[id].y_m)
-        title('Experience Map')
-        d = gca()
-        d.set_xlim([-50, 100])
-        d.set_ylim([0, 120])
+        now = time.time()
+        fps = 1.0 / (now - last_time)
+        last_time = now
+        print "Using frames %i and %i (%f fps)" % (i, i+1, fps)
 
+############################################################################
 
-        print "Using frames %i and %i" % (i, i+1)
-    
-        #savefig('/Users/Christine/Documents/REU Summer 2011/RatSLAM/Pyplot_Data/072711v2output%06i.png' % i)
-        print "Press key to continue to next image or 'q' to quit"
-    
-######################################################################################################################################################################
-
+if __name__ == "__main__":
+    main()

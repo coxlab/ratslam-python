@@ -63,7 +63,7 @@ class ExperienceLink:
         self.heading_rad = kwargs.pop('heading_rad', 0)
 
 class ExperienceMap:
-    def __init__(self, posecellnetwork, tempcol):
+    def __init__(self, posecellnetwork, tempcol, **kwargs):
         self.exps = []
         self.exp_id = kwargs.pop('exp_id', None)
 
@@ -93,10 +93,16 @@ class ExperienceMap:
     def link_exps(self, curr_exp_id, new_exp_id):
 
         d = sqrt(self.accum_delta_x**2 + self.accum_delta_y**2)
-        heading_rad = Get_Signed_Delta_Rad(self.exps[curr_exp_id].facing_rad, arctan2(self.accum_delta_y, self.accum_delta_x))
-        facing_rad = Get_Signed_Delta_Rad(self.exps[curr_exp_id].facing_rad, self.accum_delta_facing)
+        heading_rad = Get_Signed_Delta_Rad(self.exps[curr_exp_id].facing_rad, 
+                                           arctan2(self.accum_delta_y, 
+                                                   self.accum_delta_x))
+        facing_rad = Get_Signed_Delta_Rad(self.exps[curr_exp_id].facing_rad, 
+                                          self.accum_delta_facing)
         
-        nlink = link(exp_id = new_exp_id, d = d, heading_rad = heading_rad, facing_rad = facing_rad)
+        nlink = ExperienceLink(exp_id = new_exp_id, 
+                               d = d, 
+                               heading_rad = heading_rad, 
+                               facing_rad = facing_rad)
         curr_exp = self.exps[curr_exp_id]
         if curr_exp.links!=None:
             curr_exp.links.append(nlink)
@@ -119,7 +125,10 @@ class ExperienceMap:
             new_facing_rad = ClipRad180(self.accum_delta_facing)
     
         #add new experience to experience map
-        new_exp = exp(x_pc = nx_pc, y_pc = ny_pc, th_pc = nth_pc, vt_id = nvt_id, exp_id = new_exp_id, x_m = new_x_m, y_m = new_y_m, facing_rad = new_facing_rad)
+        new_exp = Experience(x_pc = nx_pc, y_pc = ny_pc, th_pc = nth_pc, 
+                             vt_id = nvt_id, exp_id = new_exp_id, 
+                             x_m = new_x_m, y_m = new_y_m, 
+                             facing_rad = new_facing_rad)
         self.exps.append(new_exp)
         
         #update vistemp/wtf. this seems to be aroundabout way of doing things.
@@ -139,7 +148,12 @@ class ExperienceMap:
         if (self.exp_id==None):
             delta_pc = 0
         else:
-            delta_pc = sqrt(get_minDelta(self.exps[self.exp_id].x_pc, x_pc, self.PC_DIM_XY)**2 + get_minDelta(self.exps[self.exp_id].y_pc, y_pc, self.PC_DIM_XY)**2 + get_minDelta(self.exps[self.exp_id].th_pc, th_pc, self.PC_DIM_TH)**2) 
+            delta_pc = sqrt(get_minDelta(self.exps[self.exp_id].x_pc, 
+                                         x_pc, self.PC_DIM_XY)**2 + \
+                            get_minDelta(self.exps[self.exp_id].y_pc, 
+                                         y_pc, self.PC_DIM_XY)**2 + \
+                            get_minDelta(self.exps[self.exp_id].th_pc, 
+                                         th_pc, self.PC_DIM_TH)**2) 
 
         if (len(self.vt[vt_id].exps) == 0) | (delta_pc > self.EXP_DELTA_PC_THRESHOLD):
             self.create_exp(self.exp_id, len(self.exps), x_pc, y_pc, th_pc, vt_id)
@@ -154,14 +168,21 @@ class ExperienceMap:
             delta_pc = []
             for search_id in xrange(len(self.vt[vt_id].exps)):
                 e_id = self.vt[vt_id].exps[search_id]
-                delta_pc.insert(search_id, sqrt(get_minDelta(self.exps[e_id].x_pc, x_pc, self.PC_DIM_XY)**2 + get_minDelta(self.exps[e_id].y_pc, y_pc, self.PC_DIM_XY)**2 + get_minDelta(self.exps[e_id].th_pc, th_pc, self.PC_DIM_TH)**2))
+                delta_pc.insert(search_id, 
+                                sqrt(get_minDelta(self.exps[e_id].x_pc, 
+                                                  x_pc, self.PC_DIM_XY)**2 + \
+                                     get_minDelta(self.exps[e_id].y_pc, 
+                                                  y_pc, self.PC_DIM_XY)**2 + \
+                                     get_minDelta(self.exps[e_id].th_pc, 
+                                                  th_pc, self.PC_DIM_TH)**2))
                 if delta_pc[search_id] <self.EXP_DELTA_PC_THRESHOLD:
                     matched_exp_count += 1
 
             if matched_exp_count>1:
                 pass
             else:
-                [min_delta, min_delta_id] = [min(delta_pc), delta_pc.index(min(delta_pc))]
+                [min_delta, min_delta_id] = [min(delta_pc), 
+                                             delta_pc.index(min(delta_pc))]
                 
                 if min_delta <self.EXP_DELTA_PC_THRESHOLD:
                     e_id = self.vt[vt_id].exps[min_delta_id]

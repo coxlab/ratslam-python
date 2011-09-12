@@ -5,6 +5,8 @@ Created on Jun 22, 2011
 '''
 #from pylab import *
 #import vod2
+from numpy import *
+import visual_odometer
 
 class VisualTemplate: #same thing as local view cell
     
@@ -56,7 +58,7 @@ class VisualTemplateCollection:
             
             if self.templates[k].activity<0: 
                 self.templates[k].activity = 0
-            (minS, minFuncVal) = vod2.rs_compare_segments(im_xsums, self.templates[k].template, self.offsetP, len(im_xsums))
+            (minS, minFuncVal) = visual_odometer.rs_compare_segments(im_xsums, self.templates[k].template, self.offsetP, len(im_xsums))
         
             if (minFuncVal<diff): #if-statement finds the minimum value of the difference between two templates
                 diff = minFuncVal
@@ -76,7 +78,7 @@ class VisualTemplateCollection:
         return vc # return the identification number of the local view cell that "matches" the current xsums or return the identification number of the new local view cell that was just created 
 
     def update(self, curr_xsums):
-        new_template = template(curr_xsums) #create a new template
+        new_template = VisualTemplate(curr_xsums) #create a new template
         new_template.vc = len(self.templates) #update the new template's number         
         self.templates.append(new_template) #add the new template to the template collection
         return new_template.vc
