@@ -37,7 +37,7 @@ def Get_Signed_Delta_Rad(angle1, angle2):
         if (dir>0):
             angle = 2*pi - delta_angle
         else:
-            angle = 0(2*pi-delta_angle)
+            angle = -(2*pi-delta_angle)
     return angle
 
 class Experience:
