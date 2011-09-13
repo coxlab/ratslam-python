@@ -1,12 +1,5 @@
-'''
-Created on Jun 22, 2011
-
-@author: Christine
-'''
-#from pylab import *
-#import vod2
 from numpy import *
-import visual_odometer
+from visual_odometer import compare_segments
 
 class VisualTemplate: #same thing as local view cell
     
@@ -25,7 +18,11 @@ class VisualTemplate: #same thing as local view cell
         self.exps = [] #list of exp_id associated with visual template
 
 class VisualTemplateCollection:
-    
+    """ A collection of simple visual templates against which an incoming
+        frame can be compared
+        
+        (Matlab equivalent: rs_visual_template)"""
+        
     def __init__ (self, **kwargs):
         
         self.templates = [] #list of all templates in template collection
@@ -58,9 +55,12 @@ class VisualTemplateCollection:
             
             if self.templates[k].activity<0: 
                 self.templates[k].activity = 0
-            (minS, minFuncVal) = visual_odometer.rs_compare_segments(im_xsums, self.templates[k].template, self.offsetP, len(im_xsums))
+            (minS, minFuncVal) = compare_segments(im_xsums, 
+                                                  self.templates[k].template, 
+                                                  self.offsetP, 
+                                                  len(im_xsums))
         
-            if (minFuncVal<diff): #if-statement finds the minimum value of the difference between two templates
+            if  minFuncVal < diff: #if-statement finds the minimum value of the difference between two templates
                 diff = minFuncVal
                 diff_id = k
 

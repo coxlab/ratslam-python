@@ -1,8 +1,3 @@
-'''
-Created on Jun 27, 2011
-
-@author: Christine
-'''
 import local_view_cell as lv
 from pylab import *
 
@@ -51,22 +46,31 @@ class PoseCellNetwork:
         self.max_pc = [0, 0, 0]
     
     def create_pc_weights(self, dim, var): #dim is dimension and var is variance
+        """ Create a 3D normalized distribution of size dim^3,
+            with a variance of var
+            
+            (Matlab version: equivalent to rs_create_posecell_weights)
+        """
+        
         weight = zeros([dim, dim, dim])
         dim_centre = math.floor(dim/2)
         
         for x in xrange(dim):
             for y in xrange(dim):
                 for z in xrange(dim): 
-                    weight[x,y,z] = 1.0/(var*math.sqrt(2*pi))*math.exp(-((x-dim_centre)**2+(y-dim_centre)**2+(z-dim_centre)**2)/(2*var**2)) 
+                    weight[x,y,z] = 1.0/(var*math.sqrt(2*pi)) * \
+                                    math.exp(-((x-dim_centre)**2 +\
+                                              (y-dim_centre)**2  +\
+                                              (z-dim_centre)**2) / (2*var**2)) 
 
-        total = abs(sum(sum(sum(weight)))) 
-        weight = weight/total
+        total = abs(sum(weight.ravel()))
+        weight /= total
     
         return weight
 
     def compute_activity_matrix(self, xywrap, thwrap, wdim, pcw): 
+        "returns gaussian distribution of excitation/inhibition pc activity"
         
-        #returns gaussian distribution of excitation/inhibition pc activity
         pca_new = zeros(self.shape)  
         indices = nonzero(self.posecells) 
         for index in xrange(len(indices[0])):
@@ -76,13 +80,19 @@ class PoseCellNetwork:
         return pca_new
     
     def get_pc_max(self, xywrap, thwrap):
+        """ Find the x,y,th center of the activity in the network
+        
+            (Matlab version: equivalent to rs_get_posecell_xyth)
+        """
         
         (x,y,z) = unravel_index(self.posecells.argmax(), self.posecells.shape)
         
         z_posecells=zeros(self.shape) 
         
         zval = self.posecells[ix_(xywrap[x:x+7], xywrap[y:y+7], thwrap[z:z+7])]
-        z_posecells[ix_(self.avg_xywrap[x:x+self.cells_avg*2+1], self.avg_xywrap[y:y+self.cells_avg*2+1], self.avg_thwrap[z:z+self.cells_avg*2+1])] = zval
+        z_posecells[ix_(self.avg_xywrap[x:x+self.cells_avg*2+1], 
+                    self.avg_xywrap[y:y+self.cells_avg*2+1], 
+                    self.avg_thwrap[z:z+self.cells_avg*2+1])] = zval
         
         # get the sums for each axis
         x_sums = sum(sum(z_posecells, 2), 1) 
@@ -90,14 +100,28 @@ class PoseCellNetwork:
         th_sums = sum(sum(z_posecells, 1), 0)
         th_sums = th_sums[:]
         
-        # now find the (x, y, th) using population vector decoding to handle the wrap around 
-        x = (arctan2(sum(self.xy_sum_sin*x_sums), sum(self.xy_sum_cos*x_sums)) *self.shape[0]/(2*pi)) % (self.shape[0])
-        y = (arctan2(sum(self.xy_sum_sin*y_sums), sum(self.xy_sum_cos*y_sums)) *self.shape[0]/(2*pi)) % (self.shape[0])
-        th = (arctan2(sum(self.th_sum_sin*th_sums), sum(self.th_sum_cos*th_sums)) *self.shape[2]/(2*pi)) % (self.shape[2])
+        # now find the (x, y, th) using population vector decoding to handle 
+        # the wrap around 
+        x = (arctan2(sum(self.xy_sum_sin*x_sums), 
+                     sum(self.xy_sum_cos*x_sums)) *\
+            self.shape[0]/(2*pi)) % (self.shape[0])
+            
+        y = (arctan2(sum(self.xy_sum_sin*y_sums), 
+                     sum(self.xy_sum_cos*y_sums)) *\
+            self.shape[0]/(2*pi)) % (self.shape[0])
+            
+        th = (arctan2(sum(self.th_sum_sin*th_sums), 
+                      sum(self.th_sum_cos*th_sums)) *\
+             self.shape[2]/(2*pi)) % (self.shape[2])
 
         return (x, y, th)
     
-    def update(self, ododelta, v_temp): 
+    def update(self, ododelta, v_temp):
+        """ Evolve the network, given a visual template input and estimates of 
+            translation and rotation (e.g. from visual odometry)
+            
+            (Matlab version: equivalent to rs_posecell_iteration) 
+        """
         
         vtrans = ododelta[0]*self.pc_vtrans_scaling 
         vrot = ododelta[1] 
@@ -113,14 +137,21 @@ class PoseCellNetwork:
                 self.posecells[act_x, act_y, act_th] += energy;
         
         #excitation weighted matrix                                                            
-        self.posecells = self.compute_activity_matrix(self.e_xywrap, self.e_thwrap, self.e_wdim, self.e_pcw) 
+        self.posecells = self.compute_activity_matrix(self.e_xywrap, 
+                                                      self.e_thwrap, 
+                                                      self.e_wdim, 
+                                                      self.e_pcw) 
         
         #inhibition weighted matrix
-        self.posecells = self.posecells - self.compute_activity_matrix(self.i_xywrap, self.i_thwrap, self.i_wdim, self.i_pcw) 
+        self.posecells -= self.compute_activity_matrix(self.i_xywrap, 
+                                                       self.i_thwrap, 
+                                                       self.i_wdim, 
+                                                       self.i_pcw) 
         
         #global inhibition
         self.posecells[self.posecells<self.global_inhibition] = 0
-        self.posecells[self.posecells >= self.global_inhibition] -=self.global_inhibition
+        self.posecells[self.posecells >= self.global_inhibition] -= \
+                                                    self.global_inhibition
 
         #normalization
         total = (sum(sum(sum(self.posecells))))
@@ -131,25 +162,38 @@ class PoseCellNetwork:
             direction = float64(dir_pc-1) * self.c_size_th 
             # N,E,S,W are straightforward
             if (direction == 0):
-                self.posecells[:,:,dir_pc] = self.posecells[:,:,dir_pc]*(1.0 - vtrans) + roll(self.posecells[:,:,dir_pc], 1,1)*vtrans
+                self.posecells[:,:,dir_pc] = \
+                    self.posecells[:,:,dir_pc] * (1.0 - vtrans) + \
+                    roll(self.posecells[:,:,dir_pc], 1,1)*vtrans
             elif direction == pi/2:
-                self.posecells[:,:,dir_pc] = self.posecells[:,:,dir_pc]*(1.0 - vtrans) + roll(self.posecells[:,:,dir_pc], 1,0)*vtrans
+                self.posecells[:,:,dir_pc] = \
+                    self.posecells[:,:,dir_pc]*(1.0 - vtrans) + \
+                    roll(self.posecells[:,:,dir_pc], 1,0)*vtrans
             elif direction == pi:
-                self.posecells[:,:,dir_pc] = self.posecells[:,:,dir_pc]*(1.0 - vtrans) + roll(self.posecells[:,:,dir_pc], -1,1)*vtrans
+                self.posecells[:,:,dir_pc] = \
+                    self.posecells[:,:,dir_pc]*(1.0 - vtrans) + \
+                    roll(self.posecells[:,:,dir_pc], -1,1)*vtrans
             elif direction == 3*pi/2:
-                self.posecells[:,:,dir_pc] = self.posecells[:,:,dir_pc]*(1.0 - vtrans) + roll(self.posecells[:,:,dir_pc], -1,0)*vtrans
+                self.posecells[:,:,dir_pc] = \
+                    self.posecells[:,:,dir_pc]*(1.0 - vtrans) + \
+                    roll(self.posecells[:,:,dir_pc], -1,0)*vtrans
             else:
                 pca90 = rot90(self.posecells[:,:,dir_pc], floor(direction *2/pi))
                 dir90 = direction - floor(direction *2/pi) * pi/2
                 pca_new=zeros([self.shape[0]+2, self.shape[0]+2])   
                 pca_new[1:-1, 1:-1] = pca90 
+                
                 weight_sw = (vtrans**2) *cos(dir90) * sin(dir90)
-                weight_se = vtrans*sin(dir90) - (vtrans**2) *cos(dir90) * sin(dir90)
-                weight_nw = vtrans*cos(dir90) - (vtrans**2) *cos(dir90) * sin(dir90)
+                weight_se = vtrans*sin(dir90) - \
+                            (vtrans**2) * cos(dir90) * sin(dir90)
+                weight_nw = vtrans*cos(dir90) - \
+                            (vtrans**2) *cos(dir90) * sin(dir90)
                 weight_ne = 1.0 - weight_sw - weight_se - weight_nw
           
-                pca_new = pca_new*weight_ne + roll(pca_new, 1, 1)*weight_nw + roll(pca_new, 1, 0)*weight_se + \
-                            roll(roll(pca_new, 1, 1), 1, 0)*weight_sw
+                pca_new = pca_new*weight_ne + \
+                          roll(pca_new, 1, 1) * weight_nw + \
+                          roll(pca_new, 1, 0) * weight_se + \
+                          roll(roll(pca_new, 1, 1), 1, 0) * weight_sw
 
                 pca90 = pca_new[1:-1, 1:-1]
                 pca90[1:, 0] = pca90[1:, 0] + pca_new[2:-1, -1]
@@ -157,16 +201,18 @@ class PoseCellNetwork:
                 pca90[0,0] = pca90[0,0] + pca_new[-1,-1]
 
                 #unrotate the pose cell xy layer
-                self.posecells[:,:,dir_pc] = rot90(pca90, 4 - floor(direction * 2/pi))
+                self.posecells[:,:,dir_pc] = rot90(pca90, 
+                                                   4 - floor(direction * 2/pi))
 
         #path integration for rot
         if vrot != 0: 
             weight = (abs(vrot)/self.c_size_th)%1
             if weight == 0:
                 weight = 1.0
-            shift_1 = int(sign(vrot) * floor(abs(vrot)/self.c_size_th))
-            shift_2 = int(sign(vrot) * ceil(abs(vrot)/self.c_size_th))
-            self.posecells = roll(self.posecells, shift_1, 2) * (1.0 - weight) + roll(self.posecells, shift_2, 2) * (weight)
+            shift1 = int(sign(vrot) * floor(abs(vrot)/self.c_size_th))
+            shift2 = int(sign(vrot) * ceil(abs(vrot)/self.c_size_th))
+            self.posecells = roll(self.posecells, shift1, 2) * (1.0 - weight) + \
+                             roll(self.posecells, shift2, 2) * (weight)
         
         self.max_pc = self.get_pc_max(self.avg_xywrap, self.avg_thwrap)
     

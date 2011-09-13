@@ -1,8 +1,3 @@
-'''
-Created on Jul 8, 2011
-
-@author: Christine
-'''
 from pylab import *
 import time
 from PIL.Image import Image
@@ -16,7 +11,7 @@ def get_im_xSums(im, y_range_type, x_range):
     im_xsums = im_xsums/(sum(im_xsums)/ len(im_xsums)) 
     return im_xsums
 
-def rs_compare_segments(seg1, seg2, slen, cwl):
+def compare_segments(seg1, seg2, slen, cwl):
 
     # assume a large difference
     mindiff = inf
@@ -28,6 +23,7 @@ def rs_compare_segments(seg1, seg2, slen, cwl):
         if (cdiff < mindiff):
             mindiff = cdiff
             minoffset = offset
+            
     for offset in xrange(1, slen+1):
         cdiff = abs(seg1[:cwl - offset] - seg2[offset:cwl])
         cdiff = sum(cdiff, 0) / float64(cwl - offset)
@@ -40,6 +36,7 @@ def rs_compare_segments(seg1, seg2, slen, cwl):
     return (offset, sdif)
 
 class VisualOdometer:
+    "Very simple visual odometry machinery"
 
     def __init__(self, **kwargs):
         
@@ -55,7 +52,12 @@ class VisualOdometer:
         self.delta = [0,0] #[vtrans, vrot]
         
     def update(self, im):
-
+        """ Estimate the translation and rotation of the viewer, given a new 
+            image sample of the environment
+            
+            (Matlab version: equivalent to rs_visual_odometry)
+        """
+        
         FOV_DEG = 50.0
         dpp = float64(FOV_DEG) / im.shape[0]
 
@@ -66,10 +68,13 @@ class VisualOdometer:
         avint = float64(sum(image_x_sums)) / len(image_x_sums)
         image_x_sums = image_x_sums/avint
         
-        [minoffset, mindiff] = rs_compare_segments(image_x_sums, self.prev_vtrans_image_x_sums, self.VISUAL_ODO_SHIFT_MATCH, len(image_x_sums))
+        [minoffset, mindiff] = compare_segments(image_x_sums, 
+                                                self.prev_vtrans_image_x_sums, 
+                                                self.VISUAL_ODO_SHIFT_MATCH, 
+                                                len(image_x_sums))
         vtrans = mindiff * self.VTRANS_SCALE
         
-        #a hack to detect excessively large vtrans
+        # a hack to detect excessively large vtrans
         if vtrans > 10:
             vtrans = 0
 
@@ -81,7 +86,10 @@ class VisualOdometer:
         avint = float64(sum(image_x_sums)) / len(image_x_sums)
         image_x_sums = image_x_sums/avint
         
-        [minoffset, mindiff] = rs_compare_segments(image_x_sums, self.prev_vrot_image_x_sums, self.VISUAL_ODO_SHIFT_MATCH, len(image_x_sums))
+        [minoffset, mindiff] = compare_segments(image_x_sums, 
+                                                self.prev_vrot_image_x_sums, 
+                                                self.VISUAL_ODO_SHIFT_MATCH, 
+                                                len(image_x_sums))
         vrot = minoffset * dpp * pi / 180.0
                 
         self.prev_vrot_image_x_sums = image_x_sums

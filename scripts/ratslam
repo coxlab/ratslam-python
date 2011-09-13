@@ -38,7 +38,7 @@ def main():
     last_time = time.time()
     
     ########################################################################
-    for i in xrange(5000):
+    for i in xrange(21000):
         
         # option to quit/break cleanly
         if wait_for_key:
@@ -73,8 +73,8 @@ def main():
             draw_position(odo[0], odo[1])
             b = gca()
             title('Raw Odometry')
-            b.set_xlim([-50, 100])
-            b.set_ylim([0, 125])
+            #b.set_xlim([-50, 100])
+            #b.set_ylim([0, 125])
         
             pcdata = subplot(2,2,3)
             draw_x_y_z(pcmax, xcoord, ycoord, thcoord, pcdata)
@@ -85,8 +85,8 @@ def main():
             draw_position(emap.exps[exp_id].x_m, emap.exps[exp_id].y_m)
             title('Experience Map')
             d = gca()
-            d.set_xlim([-50, 100])
-            d.set_ylim([0, 120])
+            #d.set_xlim([-50, 100])
+            #d.set_ylim([0, 120])
             savefig(os.path.join(output_path, 'output%06i.png' % i))
 
         now = time.time()
