@@ -1,6 +1,7 @@
 import pipeffmpeg as pff
 from PIL import Image
 import cStringIO as StringIO
+from numpy import *
 
 class VideoSource (object):
     
@@ -15,7 +16,7 @@ class VideoSource (object):
     def __getitem__(self, index):
         fr = self.video_stream[index]
         
-        im = numpy.asarray( Image.open( StringIO.StringIO(fr) ) )
+        im = asarray( Image.open( StringIO.StringIO(fr) ) )
         
         if self.grayscale:
             return mean(im,2)

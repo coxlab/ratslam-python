@@ -1,75 +1,101 @@
-import ratslam
+from ratslam import (ViewTemplateCollection,
+                     IntensityProfileTemplate,
+                     PoseCellNetwork,
+                     ExperienceMap,
+                     SimpleVisualOdometer)
 
 import os, os.path
 import csv
 import time
+from functools import partial
 
 from itertools import imap
 from pylab import  *
 import numpy
 
 
+
 class RatSLAM (object):
     
     def __init__(self, image_source):
         self.image_source = image_source
+            
+        pc_shape = [61,61,36]
         
-        self.templates = self.initialize_visual_templates()
+        self.view_templates = self.initialize_view_templates(pc_shape)
         self.visual_odometer = self.initialize_odo()
-        self.pose_cell_network = self.initialize_pose_cell_network()
+        self.pose_cell_network = self.initialize_pose_cell_network(pc_shape)
         self.experience_map = self.initialize_experience_map()
         
         self.time_step = 0
         
     #creating visual templatecollection and initializing it with the first image.
-    def initialize_visual_templates(self):
+    def initialize_view_templates(self, pc_shape):
     
-        self.templates = ratslam.VisualTemplateCollection()
+        simple_template = partial(IntensityProfileTemplate,
+                                  x_range = slice(54,615),
+                                  y_range = slice(119,280),
+                                  shift_match=20)
+                                  
+        templates = ViewTemplateCollection(simple_template,
+                                           global_decay=0.1,
+                                           match_threshold=0.09)
         im = self.image_source[0]
-        vt_id0 = self.templates.update(zeros(561))
-        self.templates.curr_vc = self.templates.match(im)
+        #templates.update(zeros(561))
         
-        return self.templates
+        templates.curr_vc = templates.match(im, pc_shape[0]/2.0,
+                                                pc_shape[1]/2.0,
+                                                pc_shape[2]/2.0 )
+        
+        return templates
 
     #initializing Visual Odometer
     def initialize_odo(self):
-    
         im0 = self.image_source[0]
-        vod = ratslam.VisualOdometer()
-        x = vod.update(im0)
-        
+        vod = SimpleVisualOdometer()
+        vod.update(im0)
         return vod
         
     #initializing position of the pose cell network activity bubble at center
-    def initialize_pose_cell_network(self):
+    def initialize_pose_cell_network(self, pc_shape):
 
-        pcnet = ratslam.PoseCellNetwork([61,61,36])
-        xy_pc = 61/2+1 
-        th_pc = 36/2+1 
+        pcnet = PoseCellNetwork(pc_shape)
+        xy_pc = pc_shape[0]/2+1 
+        th_pc = pc_shape[2]/2+1 
+        
         pcnet.posecells[xy_pc, xy_pc, th_pc] = 1
 
-        v_temp = self.templates.get_template(0)
-        pcnet.update(self.visual_odometer.delta, v_temp) 
-        pcmax = pcnet.get_pc_max(pcnet.avg_xywrap, pcnet.avg_thwrap)
+        v_temp = self.view_templates[0]
+        pcnet.update(self.visual_odometer.delta, v_temp)
+        #pcmax = pcnet.get_pc_max(pcnet.avg_xywrap, pcnet.avg_thwrap)
 
         return pcnet
 
     def initialize_experience_map(self):
-          [x_pc, y_pc, th_pc] = self.pose_cell_network.max_pc
-          vt_id = self.templates.curr_vc
-          link = ratslam.ExperienceLink(exp_id = 0, facing_rad = pi/2,
-                                                    heading_rad = pi/2, 
-                                                    d = 0)
-          links = []
-          emap = ratslam.ExperienceMap(self.pose_cell_network, 
-                                       self.templates)
-                                       
-          emap.update(self.visual_odometer.delta[0], 
-                      self.visual_odometer.delta[1], 
-                      self.pose_cell_network.max_pc[0], 
-                      self.pose_cell_network.max_pc[1], 
-                      self.pose_cell_network.max_pc[2], vt_id)
-          return emap
+        # [x_pc, y_pc, th_pc] = self.pose_cell_network.max_pc
+        #           
+        #           #vt_id = self.templates.curr_vc
+        #           
+        #           link = ratslam.ExperienceLink(exp_id = 0, facing_rad = pi/2,
+        #                                                     heading_rad = pi/2, 
+        #                                                     d = 0)
+        #           links = []
+        emap = ExperienceMap()
+        
+        current_vt = self.view_templates.curr_vc
+        
+        emap.update(self.visual_odometer.delta[0], 
+                    self.visual_odometer.delta[1], 
+                    self.pose_cell_network.max_pc[0], 
+                    self.pose_cell_network.max_pc[1], 
+                    self.pose_cell_network.max_pc[2], 
+                    current_vt)
+        
+        return emap
+
+    @property
+    def current_exp(self):
+        return self.experience_map.current_exp
 
     def evolve(self):
         c = self.time_step
@@ -77,9 +103,14 @@ class RatSLAM (object):
         
         self.current_image = self.image_source[c]
         
-        #get visual template
-        vc = self.templates.match(self.current_image)
-        v_temp = self.templates.get_template(vc)
+        avg_xywrap = self.pose_cell_network.avg_xywrap
+        avg_thwrap = self.pose_cell_network.avg_thwrap
+        pcmax = self.pose_cell_network.get_pc_max(avg_xywrap, avg_thwrap)
+        
+        # get visual template
+        v_temp = self.view_templates.match(self.current_image, pcmax[0],
+                                                           pcmax[1],
+                                                           pcmax[2])
     
         # get odometry
         self.current_odo = self.visual_odometer.update(self.current_image)
@@ -91,9 +122,7 @@ class RatSLAM (object):
         
         self.current_pose_cell = pcmax
         
-        
-        
-        #get curr_exp_id
-        self.exp_id = self.experience_map.update(self.visual_odometer.delta[0], 
-                                            self.visual_odometer.delta[1], 
-                                            pcmax[0], pcmax[1], pcmax[2], vc)
+        self.experience_map.update(self.visual_odometer.delta[0], 
+                                   self.visual_odometer.delta[1], 
+                                   pcmax[0], pcmax[1], pcmax[2],
+                                   v_temp)

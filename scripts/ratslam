@@ -55,7 +55,7 @@ def main():
         emap = driver.experience_map
         pcmax = driver.current_pose_cell
         odo = driver.current_odo
-        exp_id = driver.exp_id
+        current_exp = driver.current_exp
         
         xcoord.append(pcmax[0])
         ycoord.append(pcmax[1])
@@ -63,6 +63,7 @@ def main():
 
         if i % 5 == 0:
             print "Plotting..."
+            print driver.current_exp
             subplot(2,2,1)
             imshow(im, cmap=cm.gray)
             a=gca()
@@ -82,7 +83,7 @@ def main():
             pcdata.axis('off')
         
             subplot(2,2,4)
-            draw_position(emap.exps[exp_id].x_m, emap.exps[exp_id].y_m)
+            draw_position(current_exp.x_m, current_exp.y_m)
             title('Experience Map')
             d = gca()
             #d.set_xlim([-50, 100])

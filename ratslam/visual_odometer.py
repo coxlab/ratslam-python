@@ -35,7 +35,7 @@ def compare_segments(seg1, seg2, slen, cwl):
     
     return (offset, sdif)
 
-class VisualOdometer:
+class SimpleVisualOdometer:
     "Very simple visual odometry machinery"
 
     def __init__(self, **kwargs):
