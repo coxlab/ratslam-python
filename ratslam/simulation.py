@@ -13,7 +13,7 @@ from itertools import imap
 from pylab import  *
 import numpy
 
-
+import line_profiler
 
 class RatSLAM (object):
     
@@ -72,15 +72,8 @@ class RatSLAM (object):
         return pcnet
 
     def initialize_experience_map(self):
-        # [x_pc, y_pc, th_pc] = self.pose_cell_network.max_pc
-        #           
-        #           #vt_id = self.templates.curr_vc
-        #           
-        #           link = ratslam.ExperienceLink(exp_id = 0, facing_rad = pi/2,
-        #                                                     heading_rad = pi/2, 
-        #                                                     d = 0)
-        #           links = []
-        emap = ExperienceMap()
+
+        emap = ExperienceMap(exp_loop_iter=100)
         
         current_vt = self.view_templates.curr_vc
         
@@ -97,6 +90,7 @@ class RatSLAM (object):
     def current_exp(self):
         return self.experience_map.current_exp
 
+    @profile
     def evolve(self):
         c = self.time_step
         self.time_step += 1

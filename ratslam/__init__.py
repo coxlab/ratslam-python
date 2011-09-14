@@ -1,5 +1,5 @@
 from experience_map import *
-from local_view_cell import *
+from view_templates import *
 from pose_cell_network import *
 from visual_odometer import *
 from simulation import *

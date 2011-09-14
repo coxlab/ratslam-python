@@ -1,4 +1,8 @@
 from pylab import *
+import logging
+import line_profiler
+
+# Helper Functions
 
 def min_delta(d1, d2, max):
     delta = min([abs(d1-d2), max-abs(d1-d2)])
@@ -34,6 +38,9 @@ def signed_delta_rad(angle1, angle2):
         else:
             angle = -(2*pi-delta_angle)
     return angle
+
+
+# Classes for implementing the RatSLAM experience map
 
 class Experience:
     "A point in the experience map"
@@ -84,15 +91,9 @@ class ExperienceMap:
         self.accum_delta_x = 0
         self.accum_delta_y = 0
         self.accum_delta_facing = pi/2
-        
-        # a link to a collection of view templates
-        #self.view_templates = template_collection.templates
-       
+               
         self.current_vt = None
-        
-        # TODO: this doesn't appear to be referenced anywhere
-        #self.pose_cell_network = posecellnetwork
-        
+                
         self.PC_DIM_XY = kwargs.pop('PC_DIM_XY', 61)
         self.PC_DIM_TH = kwargs.pop('PC_DIM_TH', 36)
         self.EXP_DELTA_PC_THRESHOLD = kwargs.pop('EXP_DELTA_PC_THRESHOLD', 1.0)
@@ -102,41 +103,6 @@ class ExperienceMap:
         
         self.history = []
      
-    # TODO: DDC: Huh? This returns nothing and has no side-effects...
-    #            if a tree falls in the woods, does it make a sound?
-    #
-    # def get_exp(self, exp_id):
-    #     [xpc, ypc, thpc] = [self.exps[exp_id].x_pc, 
-    #                         self.exps[exp_id].y_pc, 
-    #                         self.exps[exp_id].th_pc]
-    #     vistemp =  self.exps[exp_id].vt_id
-    #     ident = self.exps[exp_id].exp_id
-    #     l = self.exps[exp_id].links
-    #     [xm, ym] = [self.exps[exp_id].x_m, self.exps[exp_id].y_m]
-    #     fr = self.exps[exp_id].facing_rad
-    
-        
-    # def link_exps(self, curr_exp_id, new_exp_id):
-    # 
-    #     d = sqrt(self.accum_delta_x**2 + self.accum_delta_y**2)
-    #     heading_rad = signed_delta_rad(self.exps[curr_exp_id].facing_rad, 
-    #                                        arctan2(self.accum_delta_y, 
-    #                                                self.accum_delta_x))
-    #     facing_rad = signed_delta_rad(self.exps[curr_exp_id].facing_rad, 
-    #                                       self.accum_delta_facing)
-    #     
-    #     nlink = ExperienceLink(exp_id = new_exp_id, 
-    #                            d = d, 
-    #                            heading_rad = heading_rad, 
-    #                            facing_rad = facing_rad)
-    #                            
-    #     curr_exp = self.exps[curr_exp_id]
-    #     if curr_exp.links!=None:
-    #         curr_exp.links.append(nlink)
-    #     else:
-    #         curr_exp.links = [nlink]
-
-
     def create_and_link_new_exp(self, nx_pc, ny_pc, nth_pc, vt):
         "Create a new experience and link current experience to it"
 
@@ -169,7 +135,8 @@ class ExperienceMap:
         vt.exps.append(new_exp)
 
         return new_exp
-        
+    
+    @profile
     def update(self, vtrans, vrot, x_pc, y_pc, th_pc, vt):
         """ Update the experience map
         
@@ -194,6 +161,8 @@ class ExperienceMap:
                             min_delta(self.current_exp.th_pc, 
                                       th_pc, self.PC_DIM_TH)**2) 
 
+        adjust_map  = False
+        
         
         # if this view template is not associated with any experiences yet,
         # or if the pc x,y,th has changed enough, create and link a new exp
@@ -216,22 +185,20 @@ class ExperienceMap:
             # if multiple exps are under the threshold then don't match (to 
             # reduce hash collisions)
             
+            adjust_map = True
             matched_exp = None
             
             delta_pcs = []
             n_candidate_matches = 0
             for (i, e) in enumerate(vt.exps):
-                delta_pc = sqrt(min_delta(self.exps[e_id].x_pc, 
-                                          x_pc, self.PC_DIM_XY)**2 + \
-                                min_delta(self.exps[e_id].y_pc, 
-                                          y_pc, self.PC_DIM_XY)**2 + \
-                                min_delta(self.exps[e_id].th_pc, 
-                                          th_pc, self.PC_DIM_TH)**2)
+                delta_pc = sqrt(min_delta(e.x_pc, x_pc, self.PC_DIM_XY)**2 + \
+                                min_delta(e.y_pc, y_pc, self.PC_DIM_XY)**2 + \
+                                min_delta(e.th_pc, th_pc, self.PC_DIM_TH)**2)
                 delta_pcs.append(delta_pc)
                 
                 if delta_pc < self.EXP_DELTA_PC_THRESHOLD:
                     n_candidate_matches += 1 
-                
+
 
             if n_candidate_matches > 1:
                 # this means we aren't sure about which experience is a match 
@@ -242,7 +209,8 @@ class ExperienceMap:
                 # TODO: raise?
                 # TODO: what is being accomplished here
                 #       check rs_experience_map_iteration.m, line 75-ish
-                print("Too many candidate matches")
+                logging.warning("Too many candidate matches when searching" +\
+                                " experience map")
                 pass
             else: 
                 min_delta_val = min(delta_pcs)
@@ -266,8 +234,8 @@ class ExperienceMap:
                 #self.exp_id = len(self.exps)-1
 
                 if matched_exp is None:
-                    matched_exp = self.create_and_link_exp(x_pc, y_pc, 
-                                                           th_pc, vt_id)
+                    matched_exp = self.create_and_link_new_exp(x_pc, y_pc, 
+                                                               th_pc, vt)
                 
                 
                 self.accum_delta_x = 0
@@ -275,8 +243,12 @@ class ExperienceMap:
                 self.accum_delta_facing = self.current_exp.facing_rad
                 self.current_exp = matched_exp
     
+        self.history.append(self.current_exp)
         
-        # iteratively update the experience map with the new information     
+        if not adjust_map:
+            return
+        
+        # Iteratively update the experience map with the new information     
         for i in range(0, self.exploops):
             for e0 in self.exps:
                 for l in e0.links:
@@ -314,8 +286,6 @@ class ExperienceMap:
                     e0.facing_rad = clip_rad_180(e0.facing_rad + df * cf)
                     e1.facing_rad = clip_rad_180(e1.facing_rad - df * cf)
     
-        self.history.append(self.current_exp)
-
         return
 
         

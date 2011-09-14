@@ -7,6 +7,7 @@ from numpy import *
 from matplotlib.pylab import *
 #import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import cPickle as pkl
 
 
 def draw_position(x, y):
@@ -25,6 +26,7 @@ def main():
     video_path = sys.argv[1]
     output_path = sys.argv[2]
 
+    pkl_state = False
     wait_for_key = False
 
     image_source = ratslam.VideoSource(video_path, grayscale=True)
@@ -37,8 +39,11 @@ def main():
     
     last_time = time.time()
     
+    n_steps = 21000
+    #n_steps = 500
+    
     ########################################################################
-    for i in xrange(21000):
+    for i in xrange(n_steps):
         
         # option to quit/break cleanly
         if wait_for_key:
@@ -61,9 +66,14 @@ def main():
         ycoord.append(pcmax[1])
         thcoord.append(pcmax[2])
 
+        if pkl_state and i % 100 == 0:
+            print "Pickling..."
+            with open(os.path.join(output_path, "output%06i.pkl" % i), 'wb') as f:
+                pkl.dump(driver, f)
+
         if i % 5 == 0:
+              
             print "Plotting..."
-            print driver.current_exp
             subplot(2,2,1)
             imshow(im, cmap=cm.gray)
             a=gca()
@@ -93,7 +103,7 @@ def main():
         now = time.time()
         fps = 1.0 / (now - last_time)
         last_time = now
-        print "Using frames %i and %i (%f fps)" % (i, i+1, fps)
+        print "Using frames %i and %i (%f fps ; %f spf)" % (i, i+1, fps, 1.0/fps)
 
 ############################################################################
 
